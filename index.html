@@ -13,6 +13,7 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
+  <script>try{var t=JSON.parse(localStorage.getItem('checkup.theme'));if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
 </head>
 <body>
   <div class="sparkles" aria-hidden="true"></div>
@@ -30,10 +31,11 @@
         <p>✧ add me to your home screen ✧<br>tap <b>Share</b> <span class="shareico">⍐</span> then <b>“Add to Home Screen”</b></p>
         <button class="iconbtn" id="installClose" aria-label="dismiss">✕</button>
       </div>
+      <button class="recapbanner hidden" id="recapBanner" type="button">📼 your weekly recap is ready ✧ tap to open</button>
 
       <!-- TODAY -->
       <section class="card" id="logCard">
-        <p class="prompt"><span class="u">babe</span>@<span class="h">checkup</span> <span class="p">~ ♡</span> ./log <input type="date" id="date" class="dateinp" aria-label="date"></p>
+        <p class="prompt"><span class="u">babe</span>@<span class="h">checkup</span> <span class="p">♡</span> ./log <input type="date" id="date" class="dateinp" aria-label="date"></p>
 
         <label class="row weightrow">
           <span class="lbl">&gt; weight</span>
@@ -67,34 +69,75 @@
 
       <!-- STATS -->
       <section class="card" id="statsCard">
-        <p class="prompt"><span class="p">~ ♡</span> ./stats</p>
+        <p class="prompt"><span class="p">♡</span> ./stats</p>
         <div class="stats" id="stats"></div>
+        <button class="btn ghost tiny wide" id="btnRecap" type="button">📼 weekly recap</button>
+      </section>
+
+      <!-- PET -->
+      <section class="card">
+        <p class="prompt"><span class="p">♡</span> ./pet --status</p>
+        <div class="pet">
+          <canvas id="petCanvas" width="128" height="128" aria-label="your pixel pet"></canvas>
+          <div class="petinfo">
+            <b id="petName">mochi.egg</b>
+            <span id="petMood"></span>
+            <div class="xpbar"><i id="petXp"></i></div>
+            <small id="petNext"></small>
+          </div>
+        </div>
+        <p class="prompt sub"><span class="p">♡</span> ls ./stickers <small id="stickerCount"></small></p>
+        <div class="stickers" id="stickers"></div>
       </section>
 
       <!-- CHART -->
       <section class="card">
-        <p class="prompt"><span class="p">~ ♡</span> ./graph --range
+        <p class="prompt"><span class="p">♡</span> ./graph --range
           <span class="seg" id="range">
             <button data-r="7">7d</button><button data-r="30" class="on">30d</button><button data-r="90">90d</button><button data-r="0">all</button>
           </span>
         </p>
         <div class="chartwrap"><canvas id="chart" height="220"></canvas></div>
         <p class="legend">
-          <span><i class="lg-line"></i> weight</span>
+          <span><i class="lg-trend"></i> trend (7d avg)</span>
+          <span><i class="lg-line"></i> daily</span>
           <span><i class="lg-red"></i> period</span>
           <span><b class="ast">*</b> pooped day before</span>
+          <span><i class="lg-pred"></i> predicted period</span>
         </p>
+      </section>
+
+      <!-- CYCLE -->
+      <section class="card">
+        <p class="prompt"><span class="p">♡</span> ./cycle --insights</p>
+        <div class="insights" id="cycle"></div>
+      </section>
+
+      <!-- COMPARE -->
+      <section class="card">
+        <p class="prompt"><span class="p">♡</span> ./compare
+          <span class="seg" id="cmpMode"><button data-m="side" class="on">side</button><button data-m="slide">slider</button></span>
+        </p>
+        <div id="cmpBody">
+          <div class="cmpsel">
+            <label>before <select id="cmpA"></select></label>
+            <label>after <select id="cmpB"></select></label>
+          </div>
+          <div class="cmpview" id="cmpView"></div>
+          <button class="btn wide" id="btnCmpExport" type="button">✧ save as image ✧</button>
+        </div>
+        <p class="empty" id="cmpEmpty">take pics on 2 different days to compare ✧</p>
       </section>
 
       <!-- PHOTOS -->
       <section class="card">
-        <p class="prompt"><span class="p">~ ♡</span> ls ./progress-pics</p>
+        <p class="prompt"><span class="p">♡</span> ls ./progress-pics</p>
         <div class="gallery" id="gallery"></div>
       </section>
 
       <!-- HISTORY -->
       <section class="card">
-        <p class="prompt"><span class="p">~ ♡</span> cat history.log</p>
+        <p class="prompt"><span class="p">♡</span> cat history.log</p>
         <ul class="history" id="history"></ul>
       </section>
 
@@ -142,6 +185,18 @@
     </div>
   </div>
 
+  <!-- RECAP -->
+  <div class="overlay hidden" id="recap">
+    <div class="term settingsbox">
+      <header class="titlebar">
+        <span class="dots"><i class="d1"></i><i class="d2"></i><i class="d3"></i></span>
+        <span class="ttl">recap.txt</span>
+        <button class="iconbtn" id="recapClose" aria-label="close">✕</button>
+      </header>
+      <div class="screen" id="recapBody"></div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div class="overlay hidden" id="settings">
     <div class="term settingsbox">
@@ -151,13 +206,22 @@
         <button class="iconbtn" id="settingsClose" aria-label="close">✕</button>
       </header>
       <div class="screen">
-        <p class="prompt"><span class="p">~ ♡</span> set name</p>
+        <p class="prompt"><span class="p">♡</span> set name</p>
         <input id="setName" class="txt" maxlength="16" placeholder="babe">
-        <p class="prompt"><span class="p">~ ♡</span> set units</p>
+        <p class="prompt"><span class="p">♡</span> set units</p>
         <div class="seg big" id="setUnits"><button data-u="kg">kg</button><button data-u="lb">lb</button></div>
-        <p class="prompt"><span class="p">~ ♡</span> set goal <small>(optional)</small></p>
+        <p class="prompt"><span class="p">♡</span> set theme</p>
+        <div class="themes" id="setTheme">
+          <button data-t="pink" style="--sw:#ff5c96;--sw2:#ffd6e8">pink</button>
+          <button data-t="mint" style="--sw:#16a37a;--sw2:#d4f5e9">mint</button>
+          <button data-t="lavender" style="--sw:#7a52f0;--sw2:#e6dcff">lavender</button>
+          <button data-t="night" style="--sw:#ff8fbf;--sw2:#1e1426">night</button>
+        </div>
+        <p class="prompt"><span class="p">♡</span> name your pet</p>
+        <input id="setPet" class="txt" maxlength="12" placeholder="mochi">
+        <p class="prompt"><span class="p">♡</span> set goal <small>(optional)</small></p>
         <input id="setGoal" class="txt" type="number" inputmode="decimal" step="0.1" placeholder="—">
-        <p class="prompt"><span class="p">~ ♡</span> backup</p>
+        <p class="prompt"><span class="p">♡</span> backup</p>
         <p class="note">data lives only on this phone. save a backup file now and then (it includes photos) ♡</p>
         <div class="stack">
           <button class="btn" id="btnExport" type="button">⬇ export backup</button>

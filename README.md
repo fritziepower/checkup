@@ -7,7 +7,13 @@ A cute pixel-terminal daily weigh-in app for iPhone. It runs in Safari and can b
 - Tick **on my period 🩸** and **pooped yesterday 💩**
 - Daily progress photo: **take photo** opens the in-app camera (front/back flip, 3s/10s timer, and a "ghost" overlay of your last photo so you can line up your pose). **from library** picks from Photos.
 - Graph with 7d / 30d / 90d / all ranges: the line turns **red on period days** and an **\*** marks days you pooped the day before. Tap the graph to see a day's details.
-- Stats (latest, change vs 1 week, total change, streak), optional goal line
+- **Trend line**: a smooth 7-day average drawn over the daily dots. It's the headline number in stats, so normal day-to-day water swings don't scare you
+- **Cycle insights**: cycle day, predicted next period (dashed box on the graph), average cycle/period length, how much water weight the 5 days before your period add, and this cycle vs last cycle on the same days
+- **Before/after compare**: pick any two photo days, side-by-side or slider, and save it as a cute "glow up" image
+- **Weekly recap**: on Sundays a recap card pops up (days logged, avg weight vs last week, trend, period/poop days, photos, plus a sticker). Open it any day from the stats card.
+- **Pixel pet**: name it in settings. It hatches from an egg and grows (baby → bun → fancy with a bow → queen with a crown → legendary) as your best streak grows; it never shrinks. Earn a sticker for every 7-day streak.
+- **Themes**: pink, mint, lavender and night (dark)
+- Stats (trend, weekly change, total change, streak), optional goal line
 - Photo gallery with swipe-through viewer, history list with edit/delete
 - Backup export/import (includes photos)
 
