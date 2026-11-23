@@ -194,87 +194,22 @@
   $('btnGallery').addEventListener('click', () => $('fileGallery').click());
 
   // ---------- camera ----------
-  const cam = { stream: null, facing: store.get('facing', 'user'), timer: 0, ghost: store.get('ghost', true) };
-  const video = $('video');
-  const ghostImg = $('ghost');
+  // Uses the iPhone's own camera sheet (photo mode): no permission pop-ups,
+  // no live-video "recording" indicator, no timer.
+  $('btnCamera').addEventListener('click', () => $('fileCapture').click());
 
-  $('btnCamera').addEventListener('click', openCamera);
-  async function openCamera() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { $('fileCapture').click(); return; }
-    $('camOverlay').classList.remove('hidden');
-    // ghost = most recent earlier photo, to line up your pose
-    const iso = el.date.value || todayISO();
-    const prev = [...entries].reverse().find((e) => e.photo && e.date < iso) || [...entries].reverse().find((e) => e.photo && e.date !== iso);
-    if (prev) ghostImg.src = photoURL(prev);
-    updateCamButtons(!!prev);
-    try {
-      await startStream();
-    } catch (err) {
-      closeCamera();
-      // fall back to the native camera sheet
-      $('fileCapture').setAttribute('capture', cam.facing === 'user' ? 'user' : 'environment');
-      $('fileCapture').click();
-    }
-  }
-  async function startStream() {
-    stopStream();
-    cam.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: cam.facing, width: { ideal: 1440 }, height: { ideal: 1920 } }, audio: false
+  // ---------- weight input: accept 72,4 or 72.4 ----------
+  function cleanDecimal(inp) {
+    inp.addEventListener('input', () => {
+      let v = inp.value.replace(',', '.').replace(/[^0-9.]/g, '');
+      const i = v.indexOf('.');
+      if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 1);
+      if (v !== inp.value) inp.value = v;
     });
-    video.srcObject = cam.stream;
-    video.classList.toggle('mirror', cam.facing === 'user');
-    ghostImg.style.transform = '';
-    await video.play().catch(() => {});
   }
-  function stopStream() { if (cam.stream) { cam.stream.getTracks().forEach((t) => t.stop()); cam.stream = null; } }
-  function closeCamera() { stopStream(); video.srcObject = null; $('camOverlay').classList.add('hidden'); $('countdown').classList.add('hidden'); }
-  function updateCamButtons(hasGhost) {
-    $('camTimer').textContent = '⏱ ' + (cam.timer ? cam.timer + 's' : 'off');
-    $('camGhost').classList.toggle('hidden', !hasGhost);
-    $('camGhost').textContent = cam.ghost ? '👻 ghost on' : '👻 ghost off';
-    ghostImg.classList.toggle('hidden', !(hasGhost && cam.ghost));
-  }
-  $('camClose').addEventListener('click', closeCamera);
-  $('camFlip').addEventListener('click', async () => {
-    cam.facing = cam.facing === 'user' ? 'environment' : 'user'; store.set('facing', cam.facing);
-    try { await startStream(); } catch { say("couldn't switch camera"); }
-  });
-  $('camTimer').addEventListener('click', () => { cam.timer = cam.timer === 0 ? 3 : cam.timer === 3 ? 10 : 0; updateCamButtons(!!ghostImg.getAttribute('src')); });
-  $('camGhost').addEventListener('click', () => { cam.ghost = !cam.ghost; store.set('ghost', cam.ghost); updateCamButtons(true); });
-
-  let shooting = false;
-  $('camShutter').addEventListener('click', async () => {
-    if (shooting || !cam.stream) return;
-    shooting = true;
-    const cd = $('countdown');
-    for (let n = cam.timer; n > 0; n--) {
-      cd.textContent = n; cd.classList.remove('hidden');
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-    cd.classList.add('hidden');
-    const f = document.createElement('div'); f.className = 'flash'; document.body.appendChild(f); setTimeout(() => f.remove(), 400);
-    try {
-      const vw = video.videoWidth, vh = video.videoHeight;
-      if (!vw) throw new Error('no frame');
-      // crop to 3:4 portrait like the viewfinder (object-fit: cover)
-      const target = 3 / 4;
-      let sw = vw, sh = vh;
-      if (vw / vh > target) sw = vh * target; else sh = vw / target;
-      const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
-      const s = Math.min(1, MAX_W / sw);
-      const c = document.createElement('canvas');
-      c.width = Math.round(sw * s); c.height = Math.round(sh * s);
-      const ctx = c.getContext('2d');
-      if (cam.facing === 'user') { ctx.translate(c.width, 0); ctx.scale(-1, 1); }
-      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
-      const blob = await canvasToBlob(c);
-      closeCamera();
-      setPhoto(blob);
-    } catch {
-      say('oops, camera hiccup. try again?');
-    } finally { shooting = false; }
-  });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && cam.stream) closeCamera(); });
+  cleanDecimal(el.weight);
+  cleanDecimal($('setGoal'));
+  el.weight.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.weight.blur(); });
 
   // ---------- derived data: trend + cycle ----------
   const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
@@ -556,23 +491,98 @@
   function openViewer(i) {
     viewIdx = Math.max(0, Math.min(viewList.length - 1, i));
     const e = viewList[viewIdx];
-    $('viewerImg').src = photoURL(e);
-    $('viewerTitle').textContent = e.date + '.jpg';
-    $('viewerInfo').textContent = `${niceDate(e.date)}${e.weight != null ? ' · ' + fmtW(e.weight) + settings.units : ''}`;
+    showBig(photoURL(e), e.date + '.jpg', `${niceDate(e.date)}${e.weight != null ? ' · ' + fmtW(e.weight) + settings.units : ''}`, true);
+  }
+  function showBig(src, title, info, nav) {
+    $('viewerImg').src = src;
+    $('viewerTitle').textContent = title;
+    $('viewerInfo').textContent = info || '';
+    $('viewerPrev').classList.toggle('hidden', !nav);
+    $('viewerNext').classList.toggle('hidden', !nav);
     $('viewerPrev').disabled = viewIdx >= viewList.length - 1;
     $('viewerNext').disabled = viewIdx <= 0;
+    resetZoom();
     $('viewer').classList.remove('hidden');
+    viewerNav = nav;
   }
+  let viewerNav = false;
   $('viewerClose').addEventListener('click', () => $('viewer').classList.add('hidden'));
   $('viewerPrev').addEventListener('click', () => openViewer(viewIdx + 1)); // older
   $('viewerNext').addEventListener('click', () => openViewer(viewIdx - 1)); // newer
-  let sx0 = null;
-  $('viewerImg').addEventListener('touchstart', (e) => { sx0 = e.touches[0].clientX; }, { passive: true });
-  $('viewerImg').addEventListener('touchend', (e) => {
-    if (sx0 === null) return;
-    const dx = e.changedTouches[0].clientX - sx0; sx0 = null;
-    if (Math.abs(dx) > 40) openViewer(viewIdx + (dx > 0 ? 1 : -1));
+  // tap today's preview to see it big
+  el.thumb.addEventListener('click', () => {
+    const img = el.thumb.querySelector('img');
+    if (!img) return;
+    const iso = el.date.value || todayISO();
+    showBig(img.src, iso + '.jpg', niceDate(iso), false);
   });
+
+  // pinch to zoom, drag to pan, double-tap to zoom in/out, swipe for next pic
+  const stage = $('zoomStage'), zimg = $('viewerImg');
+  const z = { s: 1, x: 0, y: 0 };
+  const pts = new Map();
+  let g = null, lastTap = 0;
+  function applyZoom(anim) {
+    zimg.style.transition = anim ? 'transform .2s ease-out' : 'none';
+    zimg.style.transform = `translate(${z.x}px, ${z.y}px) scale(${z.s})`;
+  }
+  function resetZoom() { z.s = 1; z.x = 0; z.y = 0; applyZoom(false); }
+  function clampPan() {
+    const r = stage.getBoundingClientRect();
+    const mx = (r.width * (z.s - 1)) / 2, my = (r.height * (z.s - 1)) / 2;
+    z.x = Math.max(-mx, Math.min(mx, z.x)); z.y = Math.max(-my, Math.min(my, z.y));
+  }
+  function zoomAt(ns, cx, cy) {
+    const r = stage.getBoundingClientRect();
+    const ox = cx - (r.left + r.width / 2), oy = cy - (r.top + r.height / 2);
+    z.x = ox - (ox - z.x) * (ns / z.s); z.y = oy - (oy - z.y) * (ns / z.s); z.s = ns;
+    clampPan();
+  }
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  stage.addEventListener('pointerdown', (ev) => {
+    stage.setPointerCapture(ev.pointerId);
+    pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    const p = [...pts.values()];
+    if (p.length === 2) g = { type: 'pinch', d: dist(p[0], p[1]), s: z.s };
+    else if (p.length === 1) g = { type: 'pan', x0: ev.clientX, y0: ev.clientY, x: z.x, y: z.y, t: Date.now() };
+  });
+  stage.addEventListener('pointermove', (ev) => {
+    if (!pts.has(ev.pointerId) || !g) return;
+    pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    const p = [...pts.values()];
+    if (g.type === 'pinch' && p.length >= 2) {
+      const ns = Math.max(1, Math.min(5, g.s * dist(p[0], p[1]) / g.d));
+      zoomAt(ns, (p[0].x + p[1].x) / 2, (p[0].y + p[1].y) / 2);
+      applyZoom(false);
+    } else if (g.type === 'pan' && z.s > 1) {
+      z.x = g.x + ev.clientX - g.x0; z.y = g.y + ev.clientY - g.y0; clampPan(); applyZoom(false);
+    }
+  });
+  function endPointer(ev) {
+    if (!pts.has(ev.pointerId)) return;
+    pts.delete(ev.pointerId);
+    if (g && g.type === 'pan' && pts.size === 0) {
+      const dx = ev.clientX - g.x0, dy = ev.clientY - g.y0;
+      const quick = Date.now() - g.t < 300 && Math.abs(dx) < 10 && Math.abs(dy) < 10;
+      if (quick) {
+        const now = Date.now();
+        if (now - lastTap < 300) { // double tap
+          if (z.s > 1) { z.s = 1; z.x = 0; z.y = 0; } else zoomAt(2.5, ev.clientX, ev.clientY);
+          applyZoom(true); lastTap = 0;
+        } else lastTap = now;
+      } else if (z.s === 1 && viewerNav && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+        openViewer(viewIdx + (dx > 0 ? 1 : -1));
+      } else if (z.s === 1 && dy > 120 && Math.abs(dy) > Math.abs(dx)) {
+        $('viewer').classList.add('hidden'); // swipe down to close
+      }
+    }
+    if (pts.size === 1) { const p = [...pts.values()][0]; g = { type: 'pan', x0: p.x, y0: p.y, x: z.x, y: z.y, t: 0 }; }
+    else if (pts.size === 0) { g = null; if (z.s < 1.05) { resetZoom(); applyZoom(true); } }
+  }
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
+  // stop iOS from zooming the whole page instead of the photo
+  ['gesturestart', 'gesturechange'].forEach((t) => stage.addEventListener(t, (e) => e.preventDefault()));
 
   // ---------- history ----------
   function renderHistory() {
