@@ -67,29 +67,6 @@
         <p class="msg" id="msg" role="status"></p>
       </section>
 
-      <!-- STATS -->
-      <section class="card" id="statsCard">
-        <p class="prompt"><span class="p">♡</span> ./stats</p>
-        <div class="stats" id="stats"></div>
-        <button class="btn ghost tiny wide" id="btnRecap" type="button">📼 weekly recap</button>
-      </section>
-
-      <!-- PET -->
-      <section class="card">
-        <p class="prompt"><span class="p">♡</span> ./pet --status</p>
-        <div class="pet">
-          <canvas id="petCanvas" width="128" height="128" aria-label="your pixel pet"></canvas>
-          <div class="petinfo">
-            <b id="petName">mochi.egg</b>
-            <span id="petMood"></span>
-            <div class="xpbar"><i id="petXp"></i></div>
-            <small id="petNext"></small>
-          </div>
-        </div>
-        <p class="prompt sub"><span class="p">♡</span> ls ./stickers <small id="stickerCount"></small></p>
-        <div class="stickers" id="stickers"></div>
-      </section>
-
       <!-- CHART -->
       <section class="card">
         <p class="prompt"><span class="p">♡</span> ./graph --range
@@ -98,18 +75,18 @@
           </span>
         </p>
         <div class="chartwrap"><canvas id="chart" height="220"></canvas></div>
-        <p class="legend">
-          <span><i class="lg-trend"></i> trend (7d avg)</span>
-          <span><i class="lg-line"></i> daily</span>
-          <span><i class="lg-red"></i> period</span>
-          <span><b class="ast">*</b> pooped day before</span>
-          <span><i class="lg-pred"></i> predicted period</span>
-        </p>
       </section>
 
-      <!-- CYCLE -->
+      <!-- STATS -->
+      <section class="card" id="statsCard">
+        <p class="prompt"><span class="p">♡</span> ./stats</p>
+        <div class="stats" id="stats"></div>
+        <button class="btn ghost tiny wide" id="btnRecap" type="button">📼 weekly recap</button>
+      </section>
+
+      <!-- WATER WEIGHT -->
       <section class="card">
-        <p class="prompt"><span class="p">♡</span> ./cycle --insights</p>
+        <p class="prompt"><span class="p">♡</span> ./water-weight</p>
         <div class="insights" id="cycle"></div>
       </section>
 
@@ -191,8 +168,6 @@
           <button data-t="lavender" style="--sw:#7a52f0;--sw2:#e6dcff">lavender</button>
           <button data-t="night" style="--sw:#ff8fbf;--sw2:#1e1426">night</button>
         </div>
-        <p class="prompt"><span class="p">♡</span> name your pet</p>
-        <input id="setPet" class="txt" maxlength="12" placeholder="mochi">
         <p class="prompt"><span class="p">♡</span> set goal <small>(optional)</small></p>
         <input id="setGoal" class="txt" type="text" inputmode="decimal" autocomplete="off" placeholder="—">
         <p class="prompt"><span class="p">♡</span> backup</p>

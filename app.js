@@ -23,8 +23,7 @@
     name: store.get('name', 'babe'),
     units: store.get('units', 'kg'),
     goal: store.get('goal', null), // stored in kg
-    theme: store.get('theme', 'pink'),
-    pet: store.get('pet', 'mochi')
+    theme: store.get('theme', 'pink')
   };
   const toDisp = (kg) => (settings.units === 'lb' ? kg * KG_TO_LB : kg);
   const fromDisp = (v) => (settings.units === 'lb' ? v / KG_TO_LB : v);
@@ -142,7 +141,7 @@
   function cheer(iso) {
     const lines = ['saved ♡ you did it!', 'logged ✧ proud of u', 'entry saved (˶ᵔ ᵕ ᵔ˶)', 'saved! hydrate, queen 💧', 'saved ♡ one day at a time', 'beep boop saved ✧'];
     const s = streak();
-    if (iso === todayISO() && s > 0 && s % 7 === 0) return `✧ ${s}-day streak! new sticker unlocked ✧`;
+    if (iso === todayISO() && s > 0 && s % 7 === 0) return `✧ ${s}-day streak! so proud ✧`;
     if (iso === todayISO() && s > 1) return `saved ♡ ${s}-day streak! 🔥`;
     return lines[Math.floor(Math.random() * lines.length)];
   }
@@ -349,9 +348,6 @@
     const all = entries.filter((e) => e.weight != null);
     let start = range ? addDays(end, -(range - 1)) : (all[0] ? all[0].date : end);
     if (!range && dayDiff(start, end) < 6) start = addDays(end, -6);
-    // show an upcoming predicted period if it's within ~10 days
-    const showPred = cyc && cyc.predStart > today && dayDiff(today, cyc.predStart) <= 10;
-    if (showPred) end = cyc.predEnd;
     const data = all.filter((e) => e.date >= start && e.date <= end);
     const periods = entries.filter((e) => e.period && e.date >= start && e.date <= end);
 
@@ -378,22 +374,10 @@
     lo -= padV; hi += padV;
     const yOf = (v) => T + (1 - (v - lo) / (hi - lo)) * ph;
 
-    // period columns (soft background) + ribbon under the axis
+    // period days: small red ticks under the axis (the line itself turns red too)
     const colW = Math.max(3, pw / (span + 1));
-    ctx.fillStyle = 'rgba(255, 59, 92, 0.10)';
-    periods.forEach((e) => ctx.fillRect(xOf(e.date) - colW / 2, T, colW, ph));
     ctx.fillStyle = C.red;
     periods.forEach((e) => ctx.fillRect(xOf(e.date) - colW / 2, T + ph + 3, colW, 4));
-
-    // predicted period: dashed outline
-    if (showPred) {
-      const x0 = xOf(cyc.predStart) - colW / 2, x1 = xOf(cyc.predEnd) + colW / 2;
-      ctx.strokeStyle = C.red; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
-      ctx.strokeRect(x0, T + 1, x1 - x0, ph - 2);
-      ctx.setLineDash([]);
-      ctx.fillStyle = C.red; ctx.textAlign = 'center';
-      ctx.fillText('🩸?', (x0 + x1) / 2, T - 10);
-    }
 
     // grid
     const steps = 4;
@@ -614,7 +598,6 @@
   }
   $('btnSettings').addEventListener('click', async () => {
     $('setName').value = settings.name;
-    $('setPet').value = settings.pet;
     applyUnitsLabel();
     applyTheme();
     $('settings').classList.remove('hidden');
@@ -629,8 +612,6 @@
   $('settingsClose').addEventListener('click', () => {
     settings.name = ($('setName').value.trim() || 'babe').slice(0, 16);
     store.set('name', settings.name);
-    settings.pet = ($('setPet').value.trim() || 'mochi').slice(0, 12);
-    store.set('pet', settings.pet);
     const g = parseFloat(String($('setGoal').value).replace(',', '.'));
     settings.goal = isFinite(g) && g > 0 ? fromDisp(g) : null;
     store.set('goal', settings.goal);
@@ -693,33 +674,12 @@
   function renderCycle() {
     const box = $('cycle');
     const u = settings.units;
-    if (!cyc) { box.innerHTML = '<p class="muted">tick “on my period” on period days and i’ll learn your cycle ✧</p>'; return; }
-    const today = todayISO();
     const L = [];
-    const last = cyc.periods[cyc.periods.length - 1];
-    if (cyc.onPeriod) L.push(`🩸 period day <b>${dayDiff(last.start, today) + 1}</b> — be gentle with yourself ♡`);
-    else L.push(`🌙 cycle day <b>${cyc.cycleDay}</b>`);
-    const until = dayDiff(today, cyc.predStart);
-    const guess = cyc.avgLen ? '' : ' <span class="muted">(guessing 28 days until i’ve seen 2 periods)</span>';
-    if (!cyc.onPeriod) {
-      if (until > 0) L.push(`🔮 next period in <b>~${until} day${until === 1 ? '' : 's'}</b> · ${niceDate(cyc.predStart)}${guess}`);
-      else if (until === 0) L.push(`🔮 period expected <b>around today</b>${guess}`);
-      else L.push(`🔮 period expected ~${-until} day${until === -1 ? '' : 's'} ago <span class="muted">— cycles wobble, no stress (or did you forget to tick it?)</span>`);
-    }
-    if (cyc.avgLen) L.push(`📏 avg cycle <b>${cyc.avgLen} days</b> · period <b>~${cyc.avgDur} days</b>`);
-    if (cyc.pms) {
+    if (cyc && cyc.pms) {
       const d = toDisp(cyc.pms.diff);
       L.push(`💧 in the 5 days before your period you weigh <b>${fmtD(d)}${u}</b> vs the week before <span class="muted">(${cyc.pms.n} cycle${cyc.pms.n === 1 ? '' : 's'})</span>${d > 0.2 ? ' — that’s water, not fat ♡' : ''}`);
     } else {
-      L.push('<span class="muted">💧 after a full cycle of weigh-ins i’ll show how much water weight your period brings</span>');
-    }
-    if (cyc.cmp) {
-      const d = toDisp(cyc.cmp.cur) - toDisp(cyc.cmp.prev);
-      L.push(`🔁 days 1–${cyc.cmp.k} of this cycle: avg <b>${fmtW(cyc.cmp.cur)}${u}</b> vs <b>${fmtW(cyc.cmp.prev)}${u}</b> last cycle (<b>${fmtD(d)}</b>)`);
-    }
-    if (cyc.cycles.length) {
-      L.push('<span class="muted">📜 past cycles · avg weight</span><br>' +
-        cyc.cycles.slice(-4).reverse().map((c) => `&nbsp;&nbsp;${shortDate(c.start)}–${shortDate(c.end)} · <b>${fmtW(c.avg)}${u}</b>`).join('<br>'));
+      L.push('<span class="muted">💧 tick “on my period” on period days. after a full cycle of weigh-ins i’ll show how much water weight your period brings ♡</span>');
     }
     box.innerHTML = L.map((l) => `<p>${l}</p>`).join('');
   }
@@ -867,111 +827,6 @@
   $('recapBanner').addEventListener('click', openRecap);
   $('recapClose').addEventListener('click', () => $('recap').classList.add('hidden'));
 
-  // ---------- pixel pet + stickers ----------
-  const SPR = {
-    egg: [
-      '......oooo......', '....oowwwwoo....', '...owwwwwwwwo...', '..owwwpwwwwwwo..', '..owwwwwwwwpwo..',
-      '.owwwwwwwwwwwwo.', '.owpwwwwwwwwwwo.', '.owwwwwwwwwpwwo.', '.owwwwwwwwwwwwo.', '.owwwwpwwwwwwwo.',
-      '..owwwwwwwwwwo..', '..owwwwwwwpwwo..', '...owwwwwwwwo...', '....oowwwwoo....', '......oooo......'
-    ],
-    blob: [
-      '....oooooooo....', '..oowwwwwwwwoo..', '.owwwwwwwwwwwwo.', '.owwwwwwwwwwwwo.', 'owwweewwwweewwwo',
-      'owwweewwwweewwwo', 'owppwwwmmwwwppwo', 'owwwwwwwwwwwwwwo', '.owwwwwwwwwwwwo.', '.owwwwwwwwwwwwo.',
-      '..oowwwwwwwwoo..', '....oooooooo....'
-    ],
-    ears: ['...oo......oo...', '..owpo....opwo..', '..owpo....opwo..', '..owpo....opwo..', '..owpo....opwo..', '..owpoooooopwo..']
-  };
-  const bunny = () => [...SPR.ears, ...SPR.blob.slice(1)];
-  const STAGES = [
-    { at: 0, key: 'egg', name: (n) => `${n}.egg`, k: 6 },
-    { at: 3, key: 'baby', name: (n) => `baby ${n}`, k: 6 },
-    { at: 7, key: 'bun', name: (n) => `${n} bun`, k: 7 },
-    { at: 14, key: 'fancy', name: (n) => `fancy ${n}`, k: 7 },
-    { at: 30, key: 'queen', name: (n) => `queen ${n}`, k: 7 },
-    { at: 60, key: 'legend', name: (n) => `legendary ${n}`, k: 7 }
-  ];
-  const STICKERS = ['🍓', '🌸', '🎀', '🧁', '🦄', '🌈', '🍑', '💖', '⭐', '🐰', '🍒', '🌷', '🍰', '🦋', '🐱', '🍭', '🌙', '🫶', '🐣', '🍡', '💎', '🪩', '🌻', '👑'];
-
-  function streakRuns() { // lengths of every run of consecutive weigh-in days
-    const runs = [];
-    let prev = null, len = 0;
-    entries.filter((e) => e.weight != null).forEach((e) => {
-      if (prev && dayDiff(prev, e.date) === 1) len++; else { if (len) runs.push(len); len = 1; }
-      prev = e.date;
-    });
-    if (len) runs.push(len);
-    return runs;
-  }
-
-  function drawPet(stage, happy) {
-    const c = $('petCanvas');
-    const ctx = c.getContext('2d');
-    c.width = 160; c.height = 160;
-    ctx.imageSmoothingEnabled = false;
-    const pal = { o: cssVar('--ink') || '#4a2a40', w: cssVar('--pet') || '#fffaf2', p: '#ff9cc8', e: '#3a2030', m: '#3a2030', y: '#ffcc33', r: '#ff3b7f', R: '#c81e5c', s: '#ffe48a' };
-    let spr = stage.key === 'egg' ? SPR.egg : stage.key === 'baby' ? SPR.blob : bunny();
-    spr = spr.map((r) => r.split(''));
-    const H = spr.length, k = stage.k;
-    const ox = Math.round((160 - 16 * k) / 2), oy = 150 - H * k;
-    const extra = [];
-    if (!happy && stage.key !== 'egg') { // sleepy eyes: close them into a line
-      spr.forEach((row) => row.forEach((ch, i) => { if (ch === 'e') row[i] = 'w'; }));
-      const eyeRow = stage.key === 'baby' ? 5 : 10;
-      [4, 5, 10, 11].forEach((i) => { spr[eyeRow][i] = 'e'; });
-    }
-    if (['fancy', 'queen', 'legend'].includes(stage.key)) extra.push([3, 11, 'r'], [3, 14, 'r'], [4, 11, 'r'], [4, 12, 'R'], [4, 13, 'R'], [4, 14, 'r'], [5, 11, 'r'], [5, 14, 'r']);
-    if (['queen', 'legend'].includes(stage.key)) extra.push([2, 6, 'y'], [2, 9, 'y'], [3, 6, 'y'], [3, 7, 'y'], [3, 8, 'y'], [3, 9, 'y'], [4, 6, 'y'], [4, 7, 'r'], [4, 8, 'r'], [4, 9, 'y']);
-    extra.forEach(([r, col, ch]) => { spr[r][col] = ch; });
-    // shadow
-    ctx.fillStyle = 'rgba(0,0,0,.12)';
-    ctx.fillRect(ox + 3 * k, 151, 10 * k, 4);
-    spr.forEach((row, y) => row.forEach((ch, x) => {
-      if (ch === '.' || !pal[ch]) return;
-      ctx.fillStyle = pal[ch];
-      ctx.fillRect(ox + x * k, oy + y * k, k, k);
-    }));
-    if (stage.key === 'legend' || happy) { // sparkles
-      ctx.fillStyle = stage.key === 'legend' ? '#ffcc33' : cssVar('--pink');
-      [[14, 30], [138, 46], [24, 96], [140, 112]].slice(0, stage.key === 'legend' ? 4 : 2).forEach(([x, y]) => {
-        ctx.fillRect(x, y - 4, 4, 12); ctx.fillRect(x - 4, y, 12, 4);
-      });
-    }
-    c.classList.toggle('bounce', happy);
-  }
-
-  function renderPet() {
-    const runs = streakRuns();
-    const best = Math.max(0, ...runs);
-    const cur = streak();
-    const stIdx = STAGES.reduce((acc, s, i) => (best >= s.at ? i : acc), 0);
-    const stage = STAGES[stIdx];
-    const next = STAGES[stIdx + 1];
-    const loggedToday = !!(byDate(todayISO()) && byDate(todayISO()).weight != null);
-    const nm = settings.pet;
-    $('petName').textContent = stage.name(nm);
-    $('petMood').textContent = loggedToday
-      ? (cur >= 7 ? `${nm} is so proud of you ✧` : `${nm} is happy you weighed in ♡`)
-      : cur > 0 ? `${nm} is waiting for today’s weigh-in…` : entries.length ? `${nm} missed you! start a new streak ♡` : `log your first weigh-in to hatch ${nm} ✧`;
-    if (next) {
-      $('petXp').style.width = Math.min(100, (cur / next.at) * 100) + '%';
-      $('petNext').textContent = `evolves at a ${next.at}-day streak · now ${cur}🔥`;
-    } else {
-      $('petXp').style.width = '100%';
-      $('petNext').textContent = `max level!! streak ${cur}🔥`;
-    }
-    drawPet(stage, loggedToday);
-
-    const earned = runs.reduce((s, L) => s + Math.floor(L / 7), 0);
-    const freshToday = loggedToday && cur > 0 && cur % 7 === 0;
-    const toNext = 7 - (cur % 7);
-    const cells = [];
-    for (let i = 0; i < earned; i++) cells.push(`<span class="${freshToday && i === earned - 1 ? 'new' : ''}" title="sticker ${i + 1}">${STICKERS[i % STICKERS.length]}</span>`);
-    cells.push(`<span class="locked">${toNext}d</span>`);
-    while (cells.length % 6) cells.push('<span class="locked">?</span>');
-    $('stickers').innerHTML = cells.join('');
-    $('stickerCount').textContent = `(${earned} · 1 per 7-day streak)`;
-  }
-
   // ---------- themes ----------
   function applyTheme() {
     if (settings.theme && settings.theme !== 'pink') document.documentElement.dataset.theme = settings.theme;
@@ -989,7 +844,7 @@
   function renderAll() {
     trend = computeTrend();
     cyc = computeCycle();
-    renderStats(); drawChart(); renderCycle(); renderCompare(); renderPet(); renderGallery(); renderHistory();
+    renderStats(); drawChart(); renderCycle(); renderCompare(); renderGallery(); renderHistory();
     updateRecapBanner();
   }
 

@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Bump VERSION when files change.
-const VERSION = 'checkup-v3';
+const VERSION = 'checkup-v4';
 const FILES = [
   './',
   './index.html',
