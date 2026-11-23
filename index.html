@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>checkup ♡</title>
+  <meta name="theme-color" content="#ffd6e8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="checkup">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="sparkles" aria-hidden="true"></div>
+
+  <main class="term">
+    <header class="titlebar">
+      <span class="dots"><i class="d1"></i><i class="d2"></i><i class="d3"></i></span>
+      <span class="ttl">checkup.sh — ♡</span>
+      <button class="iconbtn" id="btnSettings" aria-label="settings">⚙</button>
+    </header>
+
+    <div class="screen">
+      <p class="boot" id="boot"></p>
+      <div class="installhint hidden" id="installHint">
+        <p>✧ add me to your home screen ✧<br>tap <b>Share</b> <span class="shareico">⍐</span> then <b>“Add to Home Screen”</b></p>
+        <button class="iconbtn" id="installClose" aria-label="dismiss">✕</button>
+      </div>
+
+      <!-- TODAY -->
+      <section class="card" id="logCard">
+        <p class="prompt"><span class="u">babe</span>@<span class="h">checkup</span> <span class="p">~ ♡</span> ./log <input type="date" id="date" class="dateinp" aria-label="date"></p>
+
+        <label class="row weightrow">
+          <span class="lbl">&gt; weight</span>
+          <input id="weight" type="number" inputmode="decimal" step="0.1" min="0" placeholder="00.0">
+          <span class="unit" id="unitLbl">kg</span>
+        </label>
+
+        <div class="toggles">
+          <button class="tog" id="togPeriod" aria-pressed="false" type="button">
+            <span class="box"></span><span>on my period 🩸</span>
+          </button>
+          <button class="tog" id="togPoop" aria-pressed="false" type="button">
+            <span class="box"></span><span>pooped yesterday 💩</span>
+          </button>
+        </div>
+
+        <div class="photoarea">
+          <div class="thumb" id="thumb"><span>no pic yet ✧</span></div>
+          <div class="photobtns">
+            <button class="btn" id="btnCamera" type="button">📸 take photo</button>
+            <button class="btn ghost" id="btnGallery" type="button">🖼 from library</button>
+            <button class="btn tiny ghost hidden" id="btnRemovePhoto" type="button">✕ remove pic</button>
+          </div>
+          <input type="file" id="fileGallery" accept="image/*" hidden>
+          <input type="file" id="fileCapture" accept="image/*" capture="user" hidden>
+        </div>
+
+        <button class="btn big" id="btnSave" type="button">♡ save entry ♡</button>
+        <p class="msg" id="msg" role="status"></p>
+      </section>
+
+      <!-- STATS -->
+      <section class="card" id="statsCard">
+        <p class="prompt"><span class="p">~ ♡</span> ./stats</p>
+        <div class="stats" id="stats"></div>
+      </section>
+
+      <!-- CHART -->
+      <section class="card">
+        <p class="prompt"><span class="p">~ ♡</span> ./graph --range
+          <span class="seg" id="range">
+            <button data-r="7">7d</button><button data-r="30" class="on">30d</button><button data-r="90">90d</button><button data-r="0">all</button>
+          </span>
+        </p>
+        <div class="chartwrap"><canvas id="chart" height="220"></canvas></div>
+        <p class="legend">
+          <span><i class="lg-line"></i> weight</span>
+          <span><i class="lg-red"></i> period</span>
+          <span><b class="ast">*</b> pooped day before</span>
+        </p>
+      </section>
+
+      <!-- PHOTOS -->
+      <section class="card">
+        <p class="prompt"><span class="p">~ ♡</span> ls ./progress-pics</p>
+        <div class="gallery" id="gallery"></div>
+      </section>
+
+      <!-- HISTORY -->
+      <section class="card">
+        <p class="prompt"><span class="p">~ ♡</span> cat history.log</p>
+        <ul class="history" id="history"></ul>
+      </section>
+
+      <p class="foot">♡ your data stays on this phone only ♡<br><span class="cursor">_</span></p>
+    </div>
+  </main>
+
+  <!-- CAMERA -->
+  <div class="overlay hidden" id="camOverlay">
+    <div class="cam term">
+      <header class="titlebar">
+        <span class="dots"><i class="d1"></i><i class="d2"></i><i class="d3"></i></span>
+        <span class="ttl">camera.app ✧</span>
+        <button class="iconbtn" id="camClose" aria-label="close camera">✕</button>
+      </header>
+      <div class="viewfinder">
+        <video id="video" playsinline autoplay muted></video>
+        <img id="ghost" alt="" class="ghost hidden">
+        <div class="countdown hidden" id="countdown"></div>
+        <div class="corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <button class="btn ghost tiny ghostbtn" id="camGhost" type="button">👻 ghost</button>
+      </div>
+      <div class="camctl">
+        <button class="btn ghost tiny" id="camTimer" type="button">⏱ off</button>
+        <button class="shutter" id="camShutter" aria-label="take photo"></button>
+        <button class="btn ghost tiny" id="camFlip" type="button">🔄 flip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHOTO VIEWER -->
+  <div class="overlay hidden" id="viewer">
+    <div class="term viewerbox">
+      <header class="titlebar">
+        <span class="dots"><i class="d1"></i><i class="d2"></i><i class="d3"></i></span>
+        <span class="ttl" id="viewerTitle">pic</span>
+        <button class="iconbtn" id="viewerClose" aria-label="close">✕</button>
+      </header>
+      <img id="viewerImg" alt="progress photo">
+      <div class="viewerbar">
+        <button class="btn ghost tiny" id="viewerPrev" type="button">◀ prev</button>
+        <span id="viewerInfo"></span>
+        <button class="btn ghost tiny" id="viewerNext" type="button">next ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="overlay hidden" id="settings">
+    <div class="term settingsbox">
+      <header class="titlebar">
+        <span class="dots"><i class="d1"></i><i class="d2"></i><i class="d3"></i></span>
+        <span class="ttl">settings.cfg</span>
+        <button class="iconbtn" id="settingsClose" aria-label="close">✕</button>
+      </header>
+      <div class="screen">
+        <p class="prompt"><span class="p">~ ♡</span> set name</p>
+        <input id="setName" class="txt" maxlength="16" placeholder="babe">
+        <p class="prompt"><span class="p">~ ♡</span> set units</p>
+        <div class="seg big" id="setUnits"><button data-u="kg">kg</button><button data-u="lb">lb</button></div>
+        <p class="prompt"><span class="p">~ ♡</span> set goal <small>(optional)</small></p>
+        <input id="setGoal" class="txt" type="number" inputmode="decimal" step="0.1" placeholder="—">
+        <p class="prompt"><span class="p">~ ♡</span> backup</p>
+        <p class="note">data lives only on this phone. save a backup file now and then (it includes photos) ♡</p>
+        <div class="stack">
+          <button class="btn" id="btnExport" type="button">⬇ export backup</button>
+          <button class="btn ghost" id="btnImport" type="button">⬆ import backup</button>
+          <input type="file" id="fileImport" accept="application/json,.json" hidden>
+          <button class="btn danger tiny" id="btnWipe" type="button">rm -rf everything</button>
+        </div>
+        <p class="note" id="storageInfo"></p>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="app.js"></script>
+</body>
+</html>
